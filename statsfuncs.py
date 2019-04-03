@@ -13,16 +13,44 @@ import scipy.stats as stats
 from math import *
 from IPython import embed as shell
 from itertools import combinations
+from scipy.ndimage import measurements
+
+	
+def prevInference( data, perm1=100, perm2=10000, alpha=0.05,gamma0=0.5):
+	# Prevalence inference analysis for decoding accuracies.
+	# Derived from iPython Notebook by Lukas Snoek:
+	# https://github.com/lukassnoek/random_notebooks/blob/master/prevalence_inference.ipynb
+	N = len(data)
+	K = data[0].shape[0]
+
+	perms = np.random.normal(loc=0.5, scale=0.05, size=(N,K , perm1))
+
+	m = np.min(data,axis=0)
+	u_rank = np.zeros(K)  # uncorrected
+	c_rank = np.zeros(K)  # corrected
+	for it in range(perm2):
+	    these_perms = np.vstack([perms[k, :, np.random.choice(np.arange(perm1), size=1)]
+	                             for k in range(N)])
+	    min_vals = these_perms.min(axis=0)
+	    u_rank += m <= min_vals
+	    c_rank += m <= min_vals.max()
+	
+	pu_GN = (1 + u_rank) / (perm2 + 1)
+	pc_GN = (1 + c_rank) / (perm2 + 1)
+	pu_MN = ((1 - gamma0) * pu_GN ** (1 / N) + gamma0) ** N
+	pc_MN = pc_GN + (1 - pc_GN) * pu_MN
+
+	return pc_MN, pc_GN
 
 
-def cluster_ttest(self, cond1, cond2, n_permutes, pval):
-# cluster_ttest runs cluster-base corrected pairwise t-tests for time-frequency data. 
-# This function has been adapted from scripts by Michael X Cohen.
-# Inputs are:
-#     - data for two conditions you want to test (subject x frequency x time)
-#     - number of permutations
-#     - threshold p-value
-# It returns the t-values for significant clusters (non-cluster t-values are set to 0).
+def cluster_ttest(cond1, cond2, n_permutes, pval):
+	# cluster_ttest runs cluster-base corrected pairwise t-tests for time-frequency data. 
+	# This function has been adapted from scripts by Michael X Cohen.
+	# Inputs are:
+	#     - data for two conditions you want to test (subject x frequency x time)
+	#     - number of permutations
+	#     - threshold p-value
+	# It returns the t-values for significant clusters (non-cluster t-values are set to 0).
 			
 	zval=sp.stats.norm.ppf(1-pval);
 	# Now, let's start statistics stuff
@@ -36,7 +64,7 @@ def cluster_ttest(self, cond1, cond2, n_permutes, pval):
 	# % generate pixel-specific null hypothesis parameter distributions
 	for permi in range(n_permutes):
 	    # % permuted condition mapping
-		fake_condition_mapping = sign(np.random.normal(size=cond1.shape[0]))
+		fake_condition_mapping = np.sign(np.random.normal(size=cond1.shape[0]))
 		# % compute t-map of null hypothesis
 		tnumfake = np.array([[(cond2[:,i,j]-cond1[:,i,j]) * fake_condition_mapping for i in range(cond1.shape[1])] for j in range(cond1.shape[2])]).transpose(2,1,0).mean(axis=0)
 		# tnumfake = squeeze(mean(bsxfun(@times,cond2-cond1,fake_condition_mapping),1))
@@ -56,7 +84,7 @@ def cluster_ttest(self, cond1, cond2, n_permutes, pval):
 		# % find clusters (need image processing toolbox for this!)
 		labeled, islands = measurements.label(threshimg)
 		if islands>0:
-			area = measurements.sum((threshimg!=0), labeled, index=arange(labeled.max() + 1))
+			area = measurements.sum((threshimg!=0), labeled, index=np.arange(labeled.max() + 1))
 			max_cluster_sizes[0,permi] = np.max(area)
 
 	# % find clusters (need image processing toolbox for this!)
@@ -71,7 +99,7 @@ def cluster_ttest(self, cond1, cond2, n_permutes, pval):
 	real_island, realnumclust = measurements.label(real_t_thresh)
 	for i in range(realnumclust):
 	    # %if real clusters are too small, remove them by setting to zero!  
-	    if sum(real_island==i+1)<cluster_thresh:
-	        real_t_thresh[real_island==i]=0
+	    if np.sum(real_island==i+1)<cluster_thresh:
+	        real_t_thresh[real_island==i+1]=0
 	return np.array(real_t_thresh,dtype=bool)
 	

@@ -15,8 +15,6 @@ from IPython import embed as shell
 from itertools import combinations
 
 
-
-
 def SDT(target, hit, fa):
 	"""
 	Calculate d' and criterion     """

@@ -10,6 +10,7 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 import scipy.stats as stats 
+import seaborn as sns
 from math import *
 from IPython import embed as shell
 from itertools import combinations
@@ -18,7 +19,6 @@ def label_diff(ax,means,stds,txt,mark = True):
 	# This method draws significans boxes in bar-plots. Up until now this works for barplots with 3 bars (i.e. 3 significance boxes).
 	# Inputs are the handle of a (sub-)figure, the mean values and errors of the barplot, and lastly the actual text labels in a list.
 	# TO ADD:
-	# - automatically add ** when p<0.05/0.005
 	# - exclude specific comparissons
 	# - more than 3 bars
 	means=np.array(means)
@@ -62,4 +62,22 @@ def label_diff(ax,means,stds,txt,mark = True):
 	return ax
 
 
-	
+def rainbowPlot(dx,dy,data,ort='h'):
+	#adding color
+	pal = sns.colorpalette('RdBu_r')
+	f, ax = plt.subplots(figsize=(7, 5))
+	ax=pt.half_violinplot( x = dx, y = dy, data = df, palette = pal,
+	     bw = .2, cut = 0.,scale = "area", width = .6, 
+	     inner = None, orient = ort)
+
+	ax=sns.stripplot( x = dx, y = dy, data = df, palette = pal,
+	      edgecolor = "white",size = 3, jitter = 1, zorder = 0,
+	      orient = ort)
+
+	ax=sns.boxplot( x = dx, y = dy, data = df, color = "black",
+	      width = .15, zorder = 10, showcaps = True,
+	      boxprops = {'facecolor':'none', "zorder":10}, showfliers=True,
+	      whiskerprops = {'linewidth':2, "zorder":10}, 
+	      saturation = 1, orient = ort)	
+
+	return fig,ax
