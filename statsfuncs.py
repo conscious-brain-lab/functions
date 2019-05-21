@@ -89,7 +89,7 @@ def cluster_ttest(cond1, cond2, n_permutes, pval):
 
 	# % find clusters (need image processing toolbox for this!)
 	cluster_thresh = np.percentile(max_cluster_sizes,100-(100*pval))
-	print cluster_thresh
+	print(cluster_thresh)
 	# % now threshold real data...
 	real_t_thresh = (real_t-mean_h0)/var_h0; # % first Z-score
 
@@ -102,4 +102,42 @@ def cluster_ttest(cond1, cond2, n_permutes, pval):
 	    if np.sum(real_island==i+1)<cluster_thresh:
 	        real_t_thresh[real_island==i+1]=0
 	return np.array(real_t_thresh,dtype=bool)
-	
+
+def topo_cluster_ttest(cond1, cond2, pval, n_permutes, interdist):
+
+	dif = cond2-cond1
+	permm=np.zeros((n_permutes,cond1.shape[1]))
+	for i in range(n_permutes):
+		permm[i,:] = np.mean(dif*np.sign(np.random.normal(size=cond1.shape)),axis=0)
+
+	# cluster size
+	maxclustsize = np.zeros((n_permutes,1))
+	for i in range(n_permutes):
+	    tempz = (permm[i,:]-np.mean(permm,axis=0))/np.std(permm,axis=0, ddof=1)
+	    ph = 1-sp.stats.norm.cdf(tempz)
+	    tempz[ph>.1]=0
+	    whereSig = np.nonzero(tempz)[0]
+
+
+	    if not whereSig.size:
+	    	maxclustsize[i]=0
+	    else:
+	        clusts = np.zeros(whereSig.shape);
+	        for ci in range(len(whereSig)):
+	            clusts[ci] = sum(tempz[interdist[whereSig[ci],:]<5]);
+	        
+	        maxclustsize[i] = max(clusts);
+	    
+	# now real data
+	z=(np.mean(dif,axis=0)-np.mean(permm,axis=0))/np.std(permm,axis=0,ddof=1)
+
+	ph=1-sp.stats.norm.cdf(z)
+	z[ph>pval]=0;
+	whereSig = np.nonzero(z)[0]
+	cluster_thresh = np.percentile(maxclustsize,100-(100*pval))
+
+	for ci in range(len(whereSig)):
+	    if sum(z[interdist[whereSig[ci],:]<10]!=0) < cluster_thresh:
+	        z[whereSig[ci]] = 0
+
+	return z

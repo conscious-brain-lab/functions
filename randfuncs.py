@@ -22,7 +22,6 @@ def SDT(target, hit, fa):
 	target = np.array(target, dtype=bool)
 	hit = np.array(hit, dtype=bool)
 	fa = np.array(fa, dtype=bool)
-
 	hit_rate = (np.sum(hit)) / (float(np.sum(target)))
 	fa_rate = (np.sum(fa)) / (float(np.sum(~target)))
 
@@ -42,4 +41,4 @@ def SDT(target, hit, fa):
 	d = hit_rate_z - fa_rate_z
 	c = -(hit_rate_z + fa_rate_z) / 2.0
 
-	return(d, c)
+	return(d, c, hit_rate, fa_rate)
